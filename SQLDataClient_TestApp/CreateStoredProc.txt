@@ -1,0 +1,40 @@
+﻿CREATE PROCEDURE sp_WriteToTestTable(
+	@TestData XML
+)
+AS
+BEGIN
+	;WITH XMLNAMESPACES (DEFAULT 'http://www.test.com')
+	,TestData
+	AS(
+		SELECT
+			s.value('Id[1]', 'int') AS 'Id',
+			s.value('SomeField1[1]', 'NVARCHAR(50)') AS 'SomeField1',  
+			s.value('SomeField2[1]', 'NVARCHAR(50)') AS 'SomeField2',
+			s.value('SomeField3[1]', 'NVARCHAR(50)') AS 'SomeField3',
+			s.value('SomeField4[1]', 'NVARCHAR(50)') AS 'SomeField4',
+			s.value('SomeField5[1]', 'NVARCHAR(255)') AS 'SomeField5'
+		FROM
+			@TestData.nodes('//Data') t(s)
+	)
+
+	MERGE INTO dbo.TestTable AS [TARGET]
+		USING TestData AS [SOURCE] 
+		ON [TARGET].Id = [SOURCE].Id
+		WHEN MATCHED THEN
+		UPDATE SET
+				[SomeField1] = [SOURCE].[SomeField1],
+				[SomeField2] = [SOURCE].[SomeField2],
+				[SomeField3] = [SOURCE].[SomeField3],
+				[SomeField4] = [SOURCE].[SomeField4],
+				[SomeField5] = [SOURCE].[SomeField5]
+		WHEN NOT MATCHED BY TARGET THEN
+			INSERT ([SomeField1],[SomeField2],[SomeField3],[SomeField4],[SomeField5])
+			VALUES 
+				(
+				[SOURCE].[SomeField1],
+				[SOURCE].[SomeField2],
+				[SOURCE].[SomeField3],
+				[SOURCE].[SomeField4],
+				[SOURCE].[SomeField5]
+				);
+END
